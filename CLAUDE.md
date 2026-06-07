@@ -7,7 +7,41 @@
 ## プロジェクト概要
 
 - **作業ディレクトリ**: `C:\temp\claude code`
-- 必要に応じてこのセクションをプロジェクト固有の情報で更新してください。
+- **アプリケーション**: Reactタスクボード（タスクの追加・完了・削除、ローカルストレージ永続化）
+- **アプリディレクトリ**: `task-board/`
+
+---
+
+## デプロイ先
+
+- **GitHub Pages**: https://yusa0903.github.io/test/
+- **GitHubリポジトリ**: https://github.com/yusa0903/test
+- `main` ブランチへのプッシュで GitHub Actions が自動ビルド＆デプロイを実行する
+
+---
+
+## 技術スタック
+
+| 役割 | 技術 |
+|---|---|
+| UIフレームワーク | React 19 |
+| ビルドツール | Vite 8 |
+| 言語 | JavaScript (JSX) |
+| スタイリング | CSS Modules (`App.css`) |
+| 状態管理 | React `useState` / `useEffect` |
+| データ永続化 | `localStorage` |
+| CI/CD | GitHub Actions |
+| ホスティング | GitHub Pages |
+
+---
+
+## コンポーネント命名規則
+
+- **ファイル名**: PascalCase（例: `TaskItem.jsx`, `TaskList.jsx`）
+- **コンポーネント名**: ファイル名と一致させる（例: `function TaskItem()`）
+- **CSSクラス名**: kebab-case（例: `task-list`, `delete-btn`, `input-row`）
+- **状態変数**: camelCase（例: `tasks`, `input`, `isDone`）
+- **イベントハンドラ**: `handle` プレフィックス（例: `handleKeyDown`, `handleSubmit`）
 
 ---
 
