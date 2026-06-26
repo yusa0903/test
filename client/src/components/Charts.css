@@ -1,0 +1,51 @@
+/* グラフコンポーネントのスタイル */
+.charts-container {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.chart-card {
+  background: white;
+  border-radius: 16px;
+  padding: 24px;
+  box-shadow: 0 2px 12px rgba(0, 0, 0, 0.06);
+}
+
+.chart-title {
+  font-size: 17px;
+  font-weight: 700;
+  color: #333;
+  margin-bottom: 20px;
+}
+
+.chart-wrap {
+  display: flex;
+  justify-content: center;
+}
+
+.chart-pie {
+  max-width: 320px;
+  width: 100%;
+}
+
+.chart-bar {
+  width: 100%;
+}
+
+/* 空状態 */
+.charts-empty {
+  text-align: center;
+  padding: 60px 20px;
+  color: #aaa;
+}
+
+.empty-icon {
+  font-size: 52px;
+  margin-bottom: 12px;
+}
+
+.empty-sub {
+  font-size: 13px;
+  margin-top: 6px;
+}

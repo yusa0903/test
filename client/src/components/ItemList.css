@@ -1,0 +1,166 @@
+/* 明細一覧コンポーネントのスタイル */
+.list-container {
+  background: white;
+  border-radius: 16px;
+  padding: 20px;
+  box-shadow: 0 2px 12px rgba(0, 0, 0, 0.06);
+}
+
+.list-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 16px;
+}
+
+.section-title {
+  font-size: 18px;
+  font-weight: 700;
+  color: #333;
+}
+
+.receipt-list {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+/* レシートカード */
+.receipt-card {
+  border: 1px solid #e8ecf0;
+  border-radius: 10px;
+  overflow: hidden;
+  transition: box-shadow 0.2s;
+}
+
+.receipt-card:hover {
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+}
+
+.receipt-card-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 14px 16px;
+  cursor: pointer;
+  background: #fafbfc;
+}
+
+.receipt-meta {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.receipt-date {
+  font-size: 12px;
+  color: #999;
+}
+
+.receipt-store {
+  font-size: 15px;
+  font-weight: 600;
+  color: #333;
+}
+
+.receipt-right {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.receipt-total {
+  font-size: 17px;
+  font-weight: 700;
+  color: #667eea;
+}
+
+.expand-icon {
+  font-size: 11px;
+  color: #aaa;
+}
+
+/* 明細テーブル */
+.receipt-detail {
+  padding: 14px 16px;
+  border-top: 1px solid #e8ecf0;
+}
+
+.item-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 14px;
+}
+
+.item-table th {
+  text-align: left;
+  color: #888;
+  font-weight: 600;
+  padding: 6px 8px;
+  border-bottom: 1px solid #f0f2f5;
+}
+
+.item-table td {
+  padding: 8px 8px;
+  border-bottom: 1px solid #f8f9fa;
+}
+
+.category-tag {
+  display: inline-block;
+  padding: 2px 10px;
+  border-radius: 12px;
+  font-size: 12px;
+  font-weight: 600;
+  color: white;
+}
+
+.price-cell {
+  text-align: right;
+  font-weight: 600;
+  color: #333;
+}
+
+.receipt-actions {
+  margin-top: 12px;
+  display: flex;
+  justify-content: flex-end;
+}
+
+/* ボタン */
+.btn-danger {
+  background: #fee2e2;
+  color: #dc2626;
+  border: none;
+  border-radius: 6px;
+  padding: 8px 14px;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background 0.2s;
+}
+
+.btn-danger:hover {
+  background: #fecaca;
+}
+
+.btn-sm {
+  padding: 6px 12px;
+  font-size: 12px;
+}
+
+/* 空状態 */
+.list-empty {
+  text-align: center;
+  padding: 60px 20px;
+  color: #aaa;
+}
+
+.empty-icon {
+  font-size: 52px;
+  margin-bottom: 12px;
+}
+
+.empty-sub {
+  font-size: 13px;
+  margin-top: 6px;
+}

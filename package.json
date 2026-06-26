@@ -1,0 +1,14 @@
+{
+  "name": "receipt-kakeibo",
+  "version": "1.0.0",
+  "description": "レシート読み込み家計簿Webアプリ",
+  "scripts": {
+    "dev": "concurrently \"npm run server\" \"npm run client\"",
+    "server": "node server/server.js",
+    "client": "cd client && npm start",
+    "install:all": "npm install && cd client && npm install"
+  },
+  "dependencies": {
+    "concurrently": "^8.2.2"
+  }
+}
