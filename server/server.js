@@ -1,6 +1,9 @@
 // レシート読み込み家計簿アプリのバックエンドサーバー
 // __dirnameで絶対パスを指定し、実行場所に依存しないようにする
 require('dotenv').config({ path: require('path').join(__dirname, '../.env') });
+
+// 社内プロキシ等によるSSL証明書エラーを回避する（開発環境用）
+process.env.NODE_TLS_REJECT_UNAUTHORIZED = '0';
 const express = require('express');
 const cors    = require('cors');
 const multer  = require('multer');
@@ -84,7 +87,10 @@ app.get('/api/receipts', authenticate, async (req, res) => {
   }
 
   const { data, error } = await query;
-  if (error) return res.status(500).json({ error: error.message });
+  if (error) {
+    console.error('receipts クエリエラー:', error);
+    return res.status(500).json({ error: error.message });
+  }
   res.json({ receipts: data, isAdmin });
 });
 
