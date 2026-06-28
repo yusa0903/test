@@ -1,5 +1,6 @@
 // レシート読み込み家計簿アプリのバックエンドサーバー
-require('dotenv').config({ path: '../.env' });
+// __dirnameで絶対パスを指定し、実行場所に依存しないようにする
+require('dotenv').config({ path: require('path').join(__dirname, '../.env') });
 const express = require('express');
 const cors = require('cors');
 const multer = require('multer');
