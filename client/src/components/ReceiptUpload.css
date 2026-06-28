@@ -127,16 +127,84 @@
   to { transform: rotate(360deg); }
 }
 
-.loading-message {
-  text-align: center;
-  margin-top: 20px;
-  color: #667eea;
-  font-weight: 600;
+/* 進捗バーエリア */
+.progress-area {
+  margin-top: 24px;
+  padding: 20px;
+  background: #f8f9ff;
+  border: 1px solid #e0e4ff;
+  border-radius: 12px;
 }
 
-.loading-sub {
+.progress-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 10px;
+}
+
+.progress-label {
+  font-size: 14px;
+  font-weight: 600;
+  color: #667eea;
+}
+
+.progress-pct {
   font-size: 13px;
-  color: #999;
-  font-weight: normal;
-  margin-top: 4px;
+  font-weight: 700;
+  color: #667eea;
+}
+
+/* バートラック */
+.progress-track {
+  height: 10px;
+  background: #e0e4ff;
+  border-radius: 99px;
+  overflow: hidden;
+  margin-bottom: 16px;
+}
+
+.progress-fill {
+  height: 100%;
+  background: linear-gradient(90deg, #667eea, #764ba2);
+  border-radius: 99px;
+  transition: width 0.25s ease-out;
+}
+
+.progress-fill.complete {
+  background: linear-gradient(90deg, #4ade80, #22c55e);
+  transition: width 0.3s ease-out;
+}
+
+/* ステップインジケーター */
+.progress-steps {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.progress-step {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 12px;
+  color: #bbb;
+  transition: color 0.3s;
+}
+
+.progress-step.done {
+  color: #667eea;
+}
+
+.step-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: #ddd;
+  flex-shrink: 0;
+  transition: background 0.3s;
+}
+
+.progress-step.done .step-dot {
+  background: #667eea;
 }
