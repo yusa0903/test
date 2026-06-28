@@ -1,5 +1,6 @@
 // レシート画像アップロード・解析コンポーネント
 import React, { useState, useRef, useEffect } from 'react';
+import { supabase } from '../lib/supabase';
 import './ReceiptUpload.css';
 
 // 解析ステップの定義（ラベルと完了目安の進捗率）
@@ -93,8 +94,11 @@ function ReceiptUpload({ onAnalyzed, isLoading, setIsLoading, setError }) {
       const formData = new FormData();
       formData.append('receipt', selectedFile);
 
+      // 認証トークンをヘッダーに付与する
+      const { data: { session } } = await supabase.auth.getSession();
       const response = await fetch('/api/analyze-receipt', {
         method: 'POST',
+        headers: { Authorization: `Bearer ${session.access_token}` },
         body: formData,
       });
 
