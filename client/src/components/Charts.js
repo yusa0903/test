@@ -119,6 +119,64 @@ function Charts({ allItems, receipts }) {
     },
   };
 
+  // 日付別・カテゴリ別に集計して積み上げ棒グラフのデータを作成する
+  const allCategories = Object.keys(CATEGORY_COLORS);
+
+  // 日付ごとにカテゴリ別合計を集計する
+  const dailyData = allItems.reduce((acc, item) => {
+    const date = item.date || '不明';
+    const cat = item.category || 'その他';
+    if (!acc[date]) acc[date] = {};
+    acc[date][cat] = (acc[date][cat] || 0) + (item.price || 0);
+    return acc;
+  }, {});
+
+  // 直近30日分を昇順で取得する
+  const sortedDates = Object.keys(dailyData).sort().slice(-30);
+
+  // カテゴリごとにデータセットを作成する（値が存在するカテゴリのみ）
+  const usedCategories = allCategories.filter((cat) =>
+    sortedDates.some((date) => (dailyData[date][cat] || 0) > 0)
+  );
+
+  const stackedBarData = {
+    labels: sortedDates.map((d) => {
+      const [, m, day] = d.split('-');
+      return `${parseInt(m)}/${parseInt(day)}`;
+    }),
+    datasets: usedCategories.map((cat) => ({
+      label: cat,
+      data: sortedDates.map((date) => dailyData[date][cat] || 0),
+      backgroundColor: CATEGORY_COLORS[cat] || '#94a3b8',
+      borderRadius: 3,
+      borderSkipped: false,
+    })),
+  };
+
+  const stackedBarOptions = {
+    responsive: true,
+    plugins: {
+      legend: { position: 'bottom' },
+      tooltip: {
+        callbacks: {
+          label: (ctx) => `${ctx.dataset.label}: ¥${ctx.parsed.y.toLocaleString()}`,
+          footer: (items) => {
+            const total = items.reduce((sum, i) => sum + i.parsed.y, 0);
+            return `合計: ¥${total.toLocaleString()}`;
+          },
+        },
+      },
+    },
+    scales: {
+      x: { stacked: true },
+      y: {
+        stacked: true,
+        beginAtZero: true,
+        ticks: { callback: (v) => `¥${v.toLocaleString()}` },
+      },
+    },
+  };
+
   return (
     <div className="charts-container">
       {/* カテゴリ別円グラフ */}
@@ -126,6 +184,15 @@ function Charts({ allItems, receipts }) {
         <h2 className="chart-title">カテゴリ別支出</h2>
         <div className="chart-wrap chart-pie">
           <Pie data={pieData} options={pieOptions} />
+        </div>
+      </div>
+
+      {/* 日付別カテゴリ積み上げ棒グラフ */}
+      <div className="chart-card">
+        <h2 className="chart-title">日付別支出内訳</h2>
+        <p className="chart-sub">直近30日・カテゴリ別の積み上げ表示</p>
+        <div className="chart-wrap chart-bar">
+          <Bar data={stackedBarData} options={stackedBarOptions} />
         </div>
       </div>
 
