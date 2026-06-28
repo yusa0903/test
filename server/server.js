@@ -1,4 +1,4 @@
-// レシート読み込み家計簿アプリのバックエンドサーバー
+﻿// レシート読み込み家計簿アプリのバックエンドサーバー
 // __dirnameで絶対パスを指定し、実行場所に依存しないようにする
 require('dotenv').config({ path: require('path').join(__dirname, '../.env') });
 
@@ -16,11 +16,21 @@ const PORT = process.env.PORT || 3001;
 // Claude APIクライアントの初期化
 const anthropic = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY });
 
-// Supabase管理者クライアント（service_role_keyでRLSを迂回する）
+// Supabase管理者クライアント（service_role_keyでRLSを迂回する・JWT検証・管理者操作用）
 const supabase = createClient(
   process.env.SUPABASE_URL,
   process.env.SUPABASE_SERVICE_ROLE_KEY,
   { auth: { autoRefreshToken: false, persistSession: false } }
+);
+
+// ユーザーのJWTを使ってRLSが有効なクライアントを生成する（一般ユーザーのデータ操作用）
+const createUserClient = (token) => createClient(
+  process.env.SUPABASE_URL,
+  process.env.SUPABASE_ANON_KEY,
+  {
+    global: { headers: { Authorization: `Bearer ${token}` } },
+    auth: { persistSession: false, autoRefreshToken: false },
+  }
 );
 
 // ファイルをメモリに一時保存（ディスクに書き出さない）
@@ -37,7 +47,7 @@ app.use(cors({ origin: 'http://localhost:3000' }));
 app.use(express.json());
 
 // ───────────────────────────────────────────────
-// JWTトークンを検証して req.user にユーザー情報をセットするミドルウェア
+// JWTトークンを検証して req.user / req.token にセットするミドルウェア
 // ───────────────────────────────────────────────
 const authenticate = async (req, res, next) => {
   const token = req.headers.authorization?.replace('Bearer ', '');
@@ -46,11 +56,12 @@ const authenticate = async (req, res, next) => {
   const { data: { user }, error } = await supabase.auth.getUser(token);
   if (error || !user) return res.status(401).json({ error: '無効なトークンです' });
 
-  req.user = user;
+  req.user  = user;
+  req.token = token; // ユーザー固有クライアント生成に使う
   next();
 };
 
-// ユーザーのロールを取得するヘルパー
+// ユーザーのロールを取得するヘルパー（service_roleクライアントで取得）
 const getUserRole = async (userId) => {
   const { data } = await supabase
     .from('user_roles')
@@ -70,37 +81,40 @@ app.get('/api/me', authenticate, async (req, res) => {
 
 // ───────────────────────────────────────────────
 // レシート一覧取得
-// 管理者：全ユーザーのレシートを返す
-// 一般ユーザー：自分のレシートのみ返す
+// 管理者：service_roleクライアントで全ユーザーのレシートを返す
+// 一般ユーザー：ユーザー固有クライアント（RLS有効）で自分のレシートのみ返す
 // ───────────────────────────────────────────────
 app.get('/api/receipts', authenticate, async (req, res) => {
   const role    = await getUserRole(req.user.id);
   const isAdmin = role === 'admin';
 
-  let query = supabase
-    .from('receipts')
-    .select('*')
-    .order('created_at', { ascending: false });
-
-  if (!isAdmin) {
-    query = query.eq('user_id', req.user.id);
+  let query;
+  if (isAdmin) {
+    // 管理者はRLSを迂回して全件取得
+    query = supabase
+      .from('receipts')
+      .select('*')
+      .order('created_at', { ascending: false });
+  } else {
+    // 一般ユーザーはRLSにより自分のデータのみ取得できる
+    query = createUserClient(req.token)
+      .from('receipts')
+      .select('*')
+      .order('created_at', { ascending: false });
   }
 
   const { data, error } = await query;
-  if (error) {
-    console.error('receipts クエリエラー:', error);
-    return res.status(500).json({ error: error.message });
-  }
+  if (error) return res.status(500).json({ error: error.message });
   res.json({ receipts: data, isAdmin });
 });
 
 // ───────────────────────────────────────────────
-// レシートを保存する
+// レシートを保存する（RLSにより自分のuser_idのみ挿入可能）
 // ───────────────────────────────────────────────
 app.post('/api/receipts', authenticate, async (req, res) => {
   const { date, store, items, total } = req.body;
 
-  const { data, error } = await supabase
+  const { data, error } = await createUserClient(req.token)
     .from('receipts')
     .insert({
       user_id:    req.user.id,
@@ -119,28 +133,28 @@ app.post('/api/receipts', authenticate, async (req, res) => {
 
 // ───────────────────────────────────────────────
 // 指定IDのレシートを削除する
-// 管理者：任意のレシートを削除可能
-// 一般ユーザー：自分のレシートのみ削除可能
+// 管理者：service_roleクライアントで任意のレシートを削除可能
+// 一般ユーザー：RLSにより自分のレシートのみ削除可能
 // ───────────────────────────────────────────────
 app.delete('/api/receipts/:id', authenticate, async (req, res) => {
   const role    = await getUserRole(req.user.id);
   const isAdmin = role === 'admin';
 
-  let query = supabase.from('receipts').delete().eq('id', req.params.id);
-  if (!isAdmin) {
-    query = query.eq('user_id', req.user.id);
-  }
+  const client = isAdmin ? supabase : createUserClient(req.token);
+  const { error } = await client
+    .from('receipts')
+    .delete()
+    .eq('id', req.params.id);
 
-  const { error } = await query;
   if (error) return res.status(500).json({ error: error.message });
   res.json({ success: true });
 });
 
 // ───────────────────────────────────────────────
-// 自分のレシートを全件削除する（一般ユーザーは自分のデータのみ）
+// 自分のレシートを全件削除する（RLSにより自分のデータのみ削除可能）
 // ───────────────────────────────────────────────
 app.delete('/api/receipts', authenticate, async (req, res) => {
-  const { error } = await supabase
+  const { error } = await createUserClient(req.token)
     .from('receipts')
     .delete()
     .eq('user_id', req.user.id);
@@ -171,20 +185,7 @@ app.post('/api/analyze-receipt', authenticate, upload.single('receipt'), async (
           },
           {
             type: 'text',
-            text: `このレシート画像を解析して、以下のJSON形式で情報を抽出してください。
-日付が読み取れない場合は今日の日付を使用してください。
-カテゴリは「食費」「外食」「日用品」「交通費」「医療費」「娯楽」「その他」から最も適切なものを選んでください。
-
-{
-  "date": "YYYY-MM-DD形式の日付",
-  "store": "店舗名",
-  "items": [
-    { "name": "商品名", "price": 金額（数値のみ）, "category": "カテゴリ名" }
-  ],
-  "total": 合計金額（数値のみ）
-}
-
-JSONのみを返してください。余分な説明は不要です。`,
+            text: `このレシート画像を解析して、以下のJSON形式で情報を抽出してください。\n日付が読み取れない場合は今日の日付を使用してください。\nカテゴリは「食費」「外食」「日用品」「交通費」「医療費」「娯楽」「その他」から最も適切なものを選んでください。\n\n{\n  "date": "YYYY-MM-DD形式の日付",\n  "store": "店舗名",\n  "items": [\n    { "name": "商品名", "price": 金額（数値のみ）, "category": "カテゴリ名" }\n  ],\n  "total": 合計金額（数値のみ）\n}\n\nJSONのみを返してください。余分な説明は不要です。`,
           },
         ],
       }],
