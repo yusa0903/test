@@ -1,9 +1,5 @@
-﻿// レシート読み込み家計簿アプリのバックエンドサーバー
-// __dirnameで絶対パスを指定し、実行場所に依存しないようにする
-require('dotenv').config({ path: require('path').join(__dirname, '../.env') });
+﻿require('dotenv').config({ path: require('path').join(__dirname, '../.env') });
 
-// 社内プロキシ等によるSSL証明書エラーを回避する（開発環境用）
-process.env.NODE_TLS_REJECT_UNAUTHORIZED = '0';
 const express = require('express');
 const cors    = require('cors');
 const multer  = require('multer');
@@ -13,7 +9,6 @@ const { createClient } = require('@supabase/supabase-js');
 const app  = express();
 const PORT = process.env.PORT || 3001;
 
-// Claude APIクライアントの初期化
 const anthropic = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY });
 
 // Supabase管理者クライアント（service_role_keyでRLSを迂回する・JWT検証・管理者操作用）
@@ -33,17 +28,19 @@ const createUserClient = (token) => createClient(
   }
 );
 
-// ファイルをメモリに一時保存（ディスクに書き出さない）
+// ファイルをメモリに一時保存（4MBはVercelサーバーレス関数のボディ制限に合わせた上限）
 const upload = multer({
   storage: multer.memoryStorage(),
-  limits: { fileSize: 10 * 1024 * 1024 },
+  limits: { fileSize: 4 * 1024 * 1024 },
   fileFilter: (req, file, cb) => {
     if (file.mimetype.startsWith('image/')) cb(null, true);
     else cb(new Error('画像ファイルのみアップロード可能です'), false);
   },
 });
 
-app.use(cors({ origin: 'http://localhost:3000' }));
+// Vercelでは同一ドメインのためCORSは不要だが、外部クライアント向けに環境変数で制御できるようにする
+const allowedOrigins = (process.env.CLIENT_URL || 'http://localhost:3000').split(',');
+app.use(cors({ origin: allowedOrigins }));
 app.use(express.json());
 
 // ───────────────────────────────────────────────
@@ -57,11 +54,11 @@ const authenticate = async (req, res, next) => {
   if (error || !user) return res.status(401).json({ error: '無効なトークンです' });
 
   req.user  = user;
-  req.token = token; // ユーザー固有クライアント生成に使う
+  req.token = token;
   next();
 };
 
-// ユーザーのロールを取得するヘルパー（service_roleクライアントで取得）
+// ユーザーのロールを取得するヘルパー
 const getUserRole = async (userId) => {
   const { data } = await supabase
     .from('user_roles')
@@ -81,8 +78,6 @@ app.get('/api/me', authenticate, async (req, res) => {
 
 // ───────────────────────────────────────────────
 // レシート一覧取得
-// 管理者：service_roleクライアントで全ユーザーのレシートを返す
-// 一般ユーザー：ユーザー固有クライアント（RLS有効）で自分のレシートのみ返す
 // ───────────────────────────────────────────────
 app.get('/api/receipts', authenticate, async (req, res) => {
   const role    = await getUserRole(req.user.id);
@@ -90,13 +85,11 @@ app.get('/api/receipts', authenticate, async (req, res) => {
 
   let query;
   if (isAdmin) {
-    // 管理者はRLSを迂回して全件取得
     query = supabase
       .from('receipts')
       .select('*')
       .order('created_at', { ascending: false });
   } else {
-    // 一般ユーザーはRLSにより自分のデータのみ取得できる
     query = createUserClient(req.token)
       .from('receipts')
       .select('*')
@@ -109,7 +102,7 @@ app.get('/api/receipts', authenticate, async (req, res) => {
 });
 
 // ───────────────────────────────────────────────
-// レシートを保存する（RLSにより自分のuser_idのみ挿入可能）
+// レシートを保存する
 // ───────────────────────────────────────────────
 app.post('/api/receipts', authenticate, async (req, res) => {
   const { date, store, items, total } = req.body;
@@ -133,8 +126,6 @@ app.post('/api/receipts', authenticate, async (req, res) => {
 
 // ───────────────────────────────────────────────
 // 指定IDのレシートを削除する
-// 管理者：service_roleクライアントで任意のレシートを削除可能
-// 一般ユーザー：RLSにより自分のレシートのみ削除可能
 // ───────────────────────────────────────────────
 app.delete('/api/receipts/:id', authenticate, async (req, res) => {
   const role    = await getUserRole(req.user.id);
@@ -151,7 +142,7 @@ app.delete('/api/receipts/:id', authenticate, async (req, res) => {
 });
 
 // ───────────────────────────────────────────────
-// 自分のレシートを全件削除する（RLSにより自分のデータのみ削除可能）
+// 自分のレシートを全件削除する
 // ───────────────────────────────────────────────
 app.delete('/api/receipts', authenticate, async (req, res) => {
   const { error } = await createUserClient(req.token)
@@ -206,4 +197,9 @@ app.post('/api/analyze-receipt', authenticate, upload.single('receipt'), async (
   }
 });
 
-app.listen(PORT, () => console.log(`サーバーが起動しました: http://localhost:${PORT}`));
+// ローカル実行時のみリッスン（Vercelサーバーレスではmodule.exportsを使う）
+if (require.main === module) {
+  app.listen(PORT, () => console.log(`サーバーが起動しました: http://localhost:${PORT}`));
+}
+
+module.exports = app;

@@ -24,12 +24,18 @@ export function AuthProvider({ children }) {
   }, []);
 
   useEffect(() => {
-    // 初回マウント時にセッションを確認する
-    supabase.auth.getSession().then(({ data: { session } }) => {
-      setUser(session?.user ?? null);
-      if (session) fetchRole(session);
-      setLoading(false);
-    });
+    // 初回マウント時にセッションを確認する（失敗しても必ずloadingをfalseにする）
+    supabase.auth.getSession()
+      .then(({ data: { session } }) => {
+        setUser(session?.user ?? null);
+        if (session) fetchRole(session);
+      })
+      .catch((err) => {
+        console.error('Supabase getSession エラー:', err);
+      })
+      .finally(() => {
+        setLoading(false);
+      });
 
     // 認証状態の変化を監視する
     const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
