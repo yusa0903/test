@@ -63,6 +63,13 @@
   color: #333;
 }
 
+/* 管理者向け：レシート登録者のメール表示 */
+.receipt-owner {
+  font-size: 11px;
+  color: #a78bfa;
+  font-weight: 500;
+}
+
 .receipt-right {
   display: flex;
   align-items: center;

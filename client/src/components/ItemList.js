@@ -12,7 +12,7 @@ const CATEGORY_COLORS = {
   その他: '#94a3b8',
 };
 
-function ItemList({ receipts, onDelete, onReset }) {
+function ItemList({ receipts, isAdmin, onDelete, onReset }) {
   // 展開中のレシートIDを管理する
   const [expandedId, setExpandedId] = useState(null);
 
@@ -45,6 +45,10 @@ function ItemList({ receipts, onDelete, onReset }) {
               <div className="receipt-meta">
                 <span className="receipt-date">{receipt.date}</span>
                 <span className="receipt-store">{receipt.store || '店舗不明'}</span>
+                {/* 管理者は登録者のメールアドレスを表示する */}
+                {isAdmin && receipt.user_email && (
+                  <span className="receipt-owner">👤 {receipt.user_email}</span>
+                )}
               </div>
               <div className="receipt-right">
                 <span className="receipt-total">¥{(receipt.total || 0).toLocaleString()}</span>
